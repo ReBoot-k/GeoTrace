@@ -10,11 +10,15 @@ const INITIAL_SENSOR_DATA: ISensorData = {
 };
 
 const SENSOR_UPDATE_FREQUENCY_HZ = 1000;
+const UPDATE_INTERVAL = SENSOR_UPDATE_FREQUENCY_HZ > 0
+    ? (1000 / SENSOR_UPDATE_FREQUENCY_HZ)
+    : 1;
 const UNAVAILABLE_VALUE = 'N/A' as const;
 
 function App() {
     const [sensorData, setSensorData] = useState<ISensorData>(INITIAL_SENSOR_DATA);
     const [isCanGetData, setIsCanGetData] = useState<boolean>(false);
+    const [deltaTime, setDeltaTime] = useState<number>(0);
 
     const sensors = useMemo(() => new Sensors(), []);
 
@@ -30,18 +34,16 @@ function App() {
     useEffect(() => {
         if (!isCanGetData) return;
 
-        const updateInterval = SENSOR_UPDATE_FREQUENCY_HZ > 0 
-            ? (1000 / SENSOR_UPDATE_FREQUENCY_HZ) 
-            : 1;
-
         const intervalId = setInterval(() => {
             try {
                 const data = sensors.getRawData();
                 setSensorData(data);
+                setDeltaTime((deltaTime) => (deltaTime + UPDATE_INTERVAL));
             } catch (error) {
+
                 console.error('Error fetching sensor data:', error);
             }
-        }, updateInterval);
+        }, UPDATE_INTERVAL);
 
         return () => clearInterval(intervalId);
     }, [isCanGetData, sensors]);
@@ -72,9 +74,31 @@ function App() {
         </div>
     );
 
+    const renderGraph = () => (
+        <canvas styles="width: 100em" id="canvasGraph"></canvas>
+    );
+
+    useEffect(() => {
+        const graph = document.getElementById("canvasGraph") as HTMLCanvasElement;
+        if (!graph) {
+            return;
+        }
+
+        const context = graph.getContext("2d") as CanvasRenderingContext2D;
+        context.stroke();
+        const intervalId = setInterval(() => {
+            if (sensorData.gyroscope.roll) {
+                context.lineTo(deltaTime, sensorData.gyroscope.roll);
+            }
+        }, UPDATE_INTERVAL);
+
+        return () => clearInterval(intervalId);
+    });
+
     return (
         <div>
             {isCanGetData ? renderSensorData() : <p>Нет доступа к данным</p>}
+            {renderGraph()}
         </div>
     );
 }
