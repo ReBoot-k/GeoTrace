@@ -75,7 +75,7 @@ function App() {
     );
 
     const renderGraph = () => (
-        <canvas styles="width: 100em" id="canvasGraph"></canvas>
+       <canvas style={{ width: '100%' }} id="canvasGraph"></canvas>
     );
 
     useEffect(() => {
@@ -87,11 +87,17 @@ function App() {
         const context = graph.getContext("2d") as CanvasRenderingContext2D;
         context.stroke();
         const intervalId = setInterval(() => {
+            if (deltaTime >= graph.width) {
+                setDeltaTime(0);
+                context.beginPath();
+                context.clearRect(0, 0, graph.width, graph.height);
+                moveTo(0,0);
+            }
             if (sensorData.gyroscope.roll) {
                 context.lineTo(deltaTime, sensorData.gyroscope.roll);
             }
+             
         }, UPDATE_INTERVAL);
-
         return () => clearInterval(intervalId);
     });
 
